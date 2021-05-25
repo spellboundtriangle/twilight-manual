@@ -1,10 +1,51 @@
 import puppeteer from "https://deno.land/x/puppeteer@5.5.1/mod.ts";
 import { existsSync } from "https://deno.land/std/fs/mod.ts";
 
+function dedent (templateStrings, ...values) {
+	let matches = [];
+	let strings = typeof templateStrings === 'string' ? [ templateStrings ] : templateStrings.slice();
+
+	// 1. Remove trailing whitespace.
+	strings[strings.length - 1] = strings[strings.length - 1].replace(/\r?\n([\t ]*)$/, '');
+
+	// 2. Find all line breaks to determine the highest common indentation level.
+	for (let i = 0; i < strings.length; i++) {
+		let match;
+
+		if (match = strings[i].match(/\n[\t ]+/g)) {
+			matches.push(...match);
+		}
+	}
+
+	// 3. Remove the common indentation from all strings.
+	if (matches.length) {
+		let size = Math.min(...matches.map(value => value.length - 1));
+		let pattern = new RegExp(`\n[\t ]{${size}}`, 'g');
+
+		for (let i = 0; i < strings.length; i++) {
+			strings[i] = strings[i].replace(pattern, '\n');
+		}
+	}
+
+	// 4. Remove leading whitespace.
+	strings[0] = strings[0].replace(/^\r?\n/, '');
+
+	// 5. Perform interpolation.
+	let string = strings[0];
+
+	for (let i = 0; i < values.length; i++) {
+		string += values[i] + strings[i + 1];
+	}
+
+	return string;
+}
+
+const rootURLs = ["https://" + Deno.readTextFile("./CNAME"), "http://127.0.0.1:4000/"]
 const web = Deno.args.includes("web");
 let jekyll = null;
+
 if (web) {
-	console.log("Generating images from https://manual.ds-homebrew.com...");
+	console.log(`Generating images from ${rootURLs[0]}...`);
 } else {
 	console.log("Generating images from local files...");
 	jekyll = Deno.run({ cmd: ["bundle", "exec", "jekyll", "serve"] });
@@ -35,7 +76,7 @@ for (const dir of rootPagesFolder) {
 		console.log(dir, page);
 
 		let rootPath = `${dir.substr(1)}/${page.substr(0, page.indexOf("."))}`;
-		await tab.goto((web ? "https://manual.ds-homebrew.com/" : "http://127.0.0.1:4000/") + rootPath, {waitUntil: "networkidle0"});
+		await tab.goto((web ? rootURLs[0] : rootURLs[1]) + rootPath, {waitUntil: "networkidle0"});
 
 		if (!existsSync(`nitrofiles/pages/${rootPath}.gif`) || Deno.statSync(`nitrofiles/pages/${rootPath}.gif`).mtime < Deno.statSync(`pages/${dir}/${page}`).mtime) {
 			const dimensions = await tab.evaluate(() => {
@@ -59,47 +100,8 @@ for (const dir of rootPagesFolder) {
 			await conversionProcess.status();
 		}
 
-		if (!existsSync(`nitrofiles/pages/${rootPath}.ini`) || Deno.statSync(`nitrofiles/pages/${rootPath}.ini`).mtime < Deno.statSync(`pages/${dir}/${page}`).mtime) {
-			let links = await tab.evaluate(() => {
-				function dedent (templateStrings, ...values) {
-					let matches = [];
-					let strings = typeof templateStrings === 'string' ? [ templateStrings ] : templateStrings.slice();
-
-					// 1. Remove trailing whitespace.
-					strings[strings.length - 1] = strings[strings.length - 1].replace(/\r?\n([\t ]*)$/, '');
-
-					// 2. Find all line breaks to determine the highest common indentation level.
-					for (let i = 0; i < strings.length; i++) {
-						let match;
-
-						if (match = strings[i].match(/\n[\t ]+/g)) {
-							matches.push(...match);
-						}
-					}
-
-					// 3. Remove the common indentation from all strings.
-					if (matches.length) {
-						let size = Math.min(...matches.map(value => value.length - 1));
-						let pattern = new RegExp(`\n[\t ]{${size}}`, 'g');
-
-						for (let i = 0; i < strings.length; i++) {
-							strings[i] = strings[i].replace(pattern, '\n');
-						}
-					}
-
-					// 4. Remove leading whitespace.
-					strings[0] = strings[0].replace(/^\r?\n/, '');
-
-					// 5. Perform interpolation.
-					let string = strings[0];
-
-					for (let i = 0; i < values.length; i++) {
-						string += values[i] + strings[i + 1];
-					}
-
-					return string;
-				}
-
+		if (!existsSync(`nitrofiles/pages/${rootPath}.ini`) || Deno.statSync(`nitrofiles/pages/${rootPath}.ini`).mtime < Deno.statSync(`pages/${dir}/${page}`).mtime)
+			Deno.writeTextFileSync(`nitrofiles/pages/${rootPath}.ini`, await tab.evaluate((rootURLs, dedent) => {
 				let out = dedent`
 					[INFO]
 					TITLE = ${document.title}
@@ -107,25 +109,18 @@ for (const dir of rootPagesFolder) {
 					BG_COLOR_2 = 0xA108
 				`;
 
-				const links = document.querySelectorAll("a");
-				const arrayLinks = Array.from(links)
-					.filter(link => link.href.startsWith("https://manual.ds-homebrew.com/") || link.href.startsWith("http://127.0.0.1:4000/"))
-
-				for (const i in arrayLinks)
+				for (const link of Array.from(document.querySelectorAll("a")).filter(link => link.href.startsWith(rootURLs[0]) || link.href.startsWith(rootURLs[1])))
 					out += dedent`
 						\n\n[LINK${parseInt(i) + 1}]
-						X = ${Math.round(links[i].getBoundingClientRect().x)}
-						Y = ${Math.round(links[i].getBoundingClientRect().y)}
-						W = ${Math.round(links[i].getBoundingClientRect().width)}
-						H = ${Math.round(links[i].getBoundingClientRect().height)}
-						DEST = ${links[i].href.substr(links[i].href.lastIndexOf("/") + 1)}
+						X = ${Math.round(link.getBoundingClientRect().x)}
+						Y = ${Math.round(link.getBoundingClientRect().y)}
+						W = ${Math.round(link.getBoundingClientRect().width)}
+						H = ${Math.round(link.getBoundingClientRect().height)}
+						DEST = ${link.href.substr(link.href.lastIndexOf("/") + 1)}
 						`;
 
 				return out;
-			});
-
-			Deno.writeTextFileSync(`nitrofiles/pages/${rootPath}.ini`, links);
-		}
+			}, rootURLs, dedent));
 	}
 }
 
