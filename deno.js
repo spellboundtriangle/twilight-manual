@@ -40,7 +40,7 @@ function dedent (templateStrings, ...values) {
 	return string;
 }
 
-const rootURLs = ["https://" + Deno.readTextFile("./CNAME"), "http://127.0.0.1:4000/"]
+const rootURLs = [("https://" + Deno.readTextFile("./CNAME")), "http://127.0.0.1:4000/"]
 const web = Deno.args.includes("web");
 let jekyll = null;
 
