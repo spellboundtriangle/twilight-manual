@@ -6,7 +6,7 @@ title: nds-bootstrap
 <div id="about" class="section-title">About</div>
 <div class="section-body">
 	<p>
-		nds-bootstrap is a homebrew application used by TWiLight Menu++ to load DS(i) cartridge dumps, DSiWare, and DS-mode homebrew from the Nintendo DSi / 3DS SD card.
+		nds-bootstrap is a homebrew application used by TWiLight Menu++ to load DS(i) game card dumps, DSiWare, and DS-mode homebrew from the Nintendo DSi / 3DS SD card.
 	</p>
 	<p>
 		It can also be used on flashcards, however compatibility on flashcards is lower so it's primarily intended for homebrew-only flashcards and flashcards with low compatibility.
@@ -23,7 +23,7 @@ title: nds-bootstrap
 	</p>
 </div>
 
-<div id="controls" class="section-title">Controls</div>
+<div id="controls" class="section-title">Controls for Retail Games</div>
 <div class="section-body">
 	<p class="mb-0">
 		Press &#xE004;, &#xE07A;, and SELECT to open the in-game menu.
@@ -34,7 +34,31 @@ title: nds-bootstrap
 	</p>
 	<hr>
 	<p class="mb-0">
-		Hold &#xE004;, &#xE005;, &#xE002;, and &#xE079; for 1 second to swap the screens.
+		Hold &#xE004;, &#xE005;, &#xE079;, and &#xE002; for 1 second to swap the screens.
+	</p>
+		<hr>
+	<p class="mb-0">
+		Hold &#xE004;, &#xE005;, &#xE079;, and &#xE000; for 3 seconds to dump the RAM to <code>sd:/_nds/nds-bootstrap/ramDump.bin</code>.
+	</p>
+		<hr>
+	<p class="mb-0">
+		Hold &#xE004;, &#xE005;, &#xE079;, and &#xE001; for 2 seconds to return to TWiLight Menu++.
+	</p>
+		<hr>
+	<p>
+		If you are using nds-bootstrap in B4DS mode, only the screen swapping button combination will work, the others will not.
+	</p>
+		<hr>
+	<p>
+		None of these button cominbations will work in DSiWare.
+	</p>
+		<hr>
+	<p>
+		The in-game menu is inaccessible in DSi-Enhanced / Exclusive games running in DSi Mode.
+	</p>
+		<hr>
+	<p>
+		Returning to TWiLight Menu++ may not work on some O3DS models.
 	</p>
 </div>
 
